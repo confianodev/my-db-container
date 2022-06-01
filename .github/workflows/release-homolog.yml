@@ -11,18 +11,12 @@ jobs:
     - name: Docker Login
       run: |
         echo ${{ secrets.PACKAGES_TOKEN }} | docker login ghcr.io --username confianodev --password-stdin
-    - name: Format docker image name
-      id: docker-format
-      uses: confianodev/format-string-action@v1.0.0
-      with:
-        value: ${{ github.event.repository.name }}
-        format: docker
 
     - name: Load variables
       id: vars
       env:
         DOCKER_REGISTRY: ghcr.io/confianodev # COLOQUE O SEU REGISTRY
-        DOCKER_REPOSITORY: ${{ steps.docker-format.outputs.formatted }}
+        DOCKER_REPOSITORY: ${{ github.event.repository.name }}
       run: |
         echo "DOCKER_REGISTRY="$(echo $DOCKER_REGISTRY)"" >> $GITHUB_ENV
         echo "DOCKER_REPOSITORY="$(echo $DOCKER_REPOSITORY)"" >> $GITHUB_ENV
