@@ -1,0 +1,44 @@
+name: Release Homolog
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Docker Login
+      run: |
+        echo ${{ secrets.PACKAGES_TOKEN }} | docker login ghcr.io --username confianodev --password-stdin
+    - name: Format docker image name
+      id: docker-format
+      uses: confianodev/format-string-action@v1.0.0
+      with:
+        value: ${{ github.event.repository.name }}
+        format: docker
+
+    - name: Load variables
+      id: vars
+      env:
+        DOCKER_REGISTRY: ghcr.io/confianodev # COLOQUE O SEU REGISTRY
+        DOCKER_REPOSITORY: ${{ steps.docker-format.outputs.formatted }}
+      run: |
+        echo "DOCKER_REGISTRY="$(echo $DOCKER_REGISTRY)"" >> $GITHUB_ENV
+        echo "DOCKER_REPOSITORY="$(echo $DOCKER_REPOSITORY)"" >> $GITHUB_ENV
+        echo "DOCKER_IMAGE="$(echo $DOCKER_REGISTRY/$DOCKER_REPOSITORY)"" >> $GITHUB_ENV
+        echo "::set-output name=date::$(date +'%Y.%m.%d')"
+
+    - name: Prepare Rollback
+      id: prepare-rollback
+      continue-on-error: true
+      run: |
+        docker pull $DOCKER_IMAGE:latest
+        docker tag $DOCKER_IMAGE:latest $DOCKER_IMAGE:rollback
+        docker push $DOCKER_IMAGE:rollback
+    - name: Release Staging
+      id: release-staging
+      run: |
+        docker pull $DOCKER_IMAGE:staging
+        docker tag $DOCKER_IMAGE:staging $DOCKER_IMAGE:latest
+        docker push $DOCKER_IMAGE:latest

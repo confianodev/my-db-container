@@ -1,0 +1,50 @@
+name: Build Homolog
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      - main
+      - master
+
+env:
+  IMAGE_TAG: staging
+  REPOSITORY_URL: ${{ format('{0}/{1}', github.server_url, github.repository) }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Docker Login
+      run: |
+        echo ${{ secrets.PACKAGES_TOKEN }} | docker login ghcr.io --username confianodev --password-stdin
+    - name: Format docker image name
+      id: docker-format
+      uses: confianodev/format-string-action@v1.0.0
+      with:
+        value: ${{ github.event.repository.name }}
+        format: docker
+
+    - name: Load variables
+      id: vars
+      env:
+        DOCKER_REGISTRY: ghcr.io/confianodev # COLOQUE O SEU REGISTRY
+        DOCKER_REPOSITORY: ${{ steps.docker-format.outputs.formatted }}
+      run: |
+        echo "DOCKER_REGISTRY="$(echo $DOCKER_REGISTRY)"" >> $GITHUB_ENV
+        echo "DOCKER_REPOSITORY="$(echo $DOCKER_REPOSITORY)"" >> $GITHUB_ENV
+        echo "DOCKER_IMAGE="$(echo $DOCKER_REGISTRY/$DOCKER_REPOSITORY)"" >> $GITHUB_ENV
+        echo "::set-output name=date::$(date +'%Y.%m.%d')"
+    - name: Build, tag, and push image
+      id: build-image
+      env:
+        VERSION: ${{ format('{0}.{1}', steps.vars.outputs.date, github.run_number) }}
+        DESCRIPTION: ${{ format('Build at {0}/actions/runs/{1}', env.REPOSITORY_URL, github.run_id) }}
+      run: |
+        docker build --label org.opencontainers.image.source=$REPOSITORY_URL -t $DOCKER_IMAGE:$IMAGE_TAG .
+        docker push $DOCKER_IMAGE:$IMAGE_TAG
+        echo "Pushed $DOCKER_IMAGE:$IMAGE_TAG as version $VERSION"
