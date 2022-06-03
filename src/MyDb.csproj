@@ -5,7 +5,14 @@
         <!-- For additional properties that can be set here, please refer to https://github.com/rr-wfm/MSBuild.Sdk.SqlProj#model-properties -->
     </PropertyGroup>
 
-    <PropertyGroup>
-        <!-- Refer to https://github.com/rr-wfm/MSBuild.Sdk.SqlProj#publishing-support for supported publishing options -->
-    </PropertyGroup>
+    <ItemGroup>
+        <Content Include=".\**\*.sql" />
+
+        <!--Remove all Seed files from the build, but add them as post-deploy https://github.com/rr-wfm/MSBuild.Sdk.SqlProj/issues/103 -->
+
+        <Content Remove="..\**\Seed\*.sql" />
+        <Content Remove=".\PostDeploy\SeedTables.sql" />
+
+        <PostDeploy Include=".\PostDeploy\SeedTables.sql" />
+    </ItemGroup>
 </Project>
