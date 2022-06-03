@@ -22,7 +22,6 @@ jobs:
     - name: Docker Login
       run: |
         echo ${{ secrets.PACKAGES_TOKEN }} | docker login ghcr.io --username confianodev --password-stdin
-
     - name: Load variables
       id: vars
       env:
